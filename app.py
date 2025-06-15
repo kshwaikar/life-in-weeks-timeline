@@ -52,15 +52,16 @@ def add_event():
     db.commit()
     return jsonify({"message": "Event added", "event_id": cursor.lastrowid}), 201
 
-@app.route('/api/events/<int:event_id>', methods=['PUT'])
+@app.route("/api/events/<int:event_id>", methods=["PUT"])
 def update_event(event_id):
     data = request.json
-    cursor.execute(
-        "UPDATE events SET title=%s, event_date=%s, category=%s WHERE id=%s",
-        (data["title"], data["event_date"], data["category"], event_id)
-    )
+    title = data.get("title")
+    event_date = data.get("event_date")
+
+    cursor.execute("UPDATE events SET title = %s, event_date = %s WHERE id = %s",
+                   (title, event_date, event_id))
     db.commit()
-    return jsonify({"message": "Event updated"})
+    return jsonify({"message": "Event updated successfully."})
 
 @app.route('/api/events/<int:event_id>', methods=['DELETE'])
 def delete_event(event_id):
