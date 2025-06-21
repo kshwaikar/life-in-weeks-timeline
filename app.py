@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 from Database.config import get_connection
 import pg8000.native
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -83,5 +84,7 @@ def delete_event(event_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
