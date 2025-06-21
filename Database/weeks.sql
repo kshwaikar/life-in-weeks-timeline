@@ -1,9 +1,6 @@
 
-CREATE DATABASE life__in_weeks;
-USE life__in_weeks;
-
 CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     birthdate DATE NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -11,10 +8,9 @@ CREATE TABLE users (
 );
 
 CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     event_date DATE NOT NULL,
-    category VARCHAR(50) DEFAULT 'personal',
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    category VARCHAR(50) DEFAULT 'personal'
 );
