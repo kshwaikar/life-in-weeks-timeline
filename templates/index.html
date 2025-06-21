@@ -110,8 +110,8 @@
   <div id="timeline-container"></div>
 
   <script>
-    let birthdate = new Date('2003-05-17'); // Default, can update via register
-    let userId = 1;
+    let birthdate;
+    let userId = null;
     let personalEvents = [];
     let globalEvents = [];
 
@@ -147,6 +147,11 @@
       const email = document.getElementById('reg-email').value;
       const password = document.getElementById('reg-password').value;
 
+      if (!bd || !name || !email || !password) {
+        alert("Please fill in all registration fields.");
+        return;
+      }
+
       birthdate = new Date(bd);
 
       fetch('/api/register', {
@@ -156,14 +161,23 @@
       })
       .then(res => res.json())
       .then(data => {
-        alert("Registered successfully! Your User ID: " + data.user_id);
-        userId = data.user_id;
-        loadEvents(userId);
+        if (data.user_id) {
+          alert("Registered successfully! Your User ID: " + data.user_id);
+          userId = data.user_id;
+          loadEvents(userId);
+        } else {
+          alert("Registration failed: " + JSON.stringify(data));
+        }
       })
       .catch(err => alert("Registration failed: " + err));
     }
 
     function addEvent() {
+      if (!userId) {
+        alert("Please register first.");
+        return;
+      }
+
       const week = parseInt(document.getElementById('weekNumber').value);
       const title = document.getElementById('title').value;
       const eventDate = document.getElementById('eventDate').value;
@@ -258,12 +272,7 @@
       });
     }
 
-    // Init
-    loadEvents(userId);
     loadGlobalEvents();
   </script>
 </body>
 </html>
-
-
-
