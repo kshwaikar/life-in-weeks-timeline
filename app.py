@@ -1,16 +1,13 @@
 from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
-from Database.config import db_config
+from Database.config import get_connection
 import pg8000.native
 
 app = Flask(__name__)
 CORS(app)
 
-try:
-    # Establish connection
-    conn = pg8000.native.Connection(**db_config)
-except Exception as e:
-    raise RuntimeError(f"Failed to connect to the database: {e}")
+# Get a database connection
+conn = get_connection()
 
 @app.route('/')
 def home():
