@@ -60,9 +60,6 @@
       background-color: green;
       position: relative;
     }
-    #event-form, #register-form, #edit-form {
-      margin-bottom: 2rem;
-    }
     input, button, select {
       padding: 0.5rem;
       margin: 0.5rem;
@@ -74,6 +71,9 @@
       background-color: #1976d2;
       color: white;
       cursor: pointer;
+    }
+    #event-form, #register-form, #edit-form {
+      margin-bottom: 2rem;
     }
   </style>
 </head>
@@ -110,176 +110,166 @@
   <div id="timeline-container"></div>
 
   <script>
-  let birthdate = null;
-  let userId = null;
-  let personalEvents = [];
-  let globalEvents = [];
+    let birthdate = new Date('2003-01-01');
+    let userId = null;
+    let personalEvents = [];
+    let globalEvents = [];
 
-  function renderTimeline() {
-    if (!birthdate) return;
+    function renderTimeline() {
+      const now = new Date();
+      const weeksLived = Math.floor((now - birthdate) / (1000 * 60 * 60 * 24 * 7));
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '';
 
-    const now = new Date();
-    const weeksLived = Math.floor((now - birthdate) / (1000 * 60 * 60 * 24 * 7));
-    const container = document.getElementById('timeline-container');
-    container.innerHTML = '';
+      for (let i = 0; i < weeksLived; i++) {
+        const weekBox = document.createElement('div');
+        weekBox.classList.add('week');
 
-    for (let i = 0; i < weeksLived; i++) {
-      const weekBox = document.createElement('div');
-      weekBox.classList.add('week');
+        const personal = personalEvents.find(e => e.week === i + 1);
+        const global = globalEvents.find(e => e.week === i + 1);
 
-      const personal = personalEvents.find(e => e.week === i + 1);
-      const global = globalEvents.find(e => e.week === i + 1);
+        if (global) {
+          weekBox.classList.add('global');
+          weekBox.setAttribute('data-title', `${global.date} - ${global.title}`);
+        } else if (personal) {
+          weekBox.classList.add('event');
+          weekBox.setAttribute('data-title', `${personal.date} - ${personal.title}`);
+        }
 
-      if (global) {
-        weekBox.classList.add('global');
-        weekBox.setAttribute('data-title', `${global.date}\n${global.title}`);
-      } else if (personal) {
-        weekBox.classList.add('event');
-        weekBox.setAttribute('data-title', `${personal.date}\n${personal.title}`);
+        container.appendChild(weekBox);
+      }
+    }
+
+    function registerUser() {
+      const name = document.getElementById('reg-name').value;
+      const bd = document.getElementById('reg-birthdate').value;
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+
+      if (!name || !bd || !email || !password) {
+        alert("Please fill all fields!");
+        return;
       }
 
-      container.appendChild(weekBox);
-    }
-  }
+      birthdate = new Date(bd);
 
-  function registerUser() {
-    const name = document.getElementById('reg-name').value;
-    const bd = document.getElementById('reg-birthdate').value;
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
-
-    if (!name || !bd || !email || !password) {
-      alert("All fields are required!");
-      return;
-    }
-
-    fetch('/api/register', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ name, birthdate: bd, email, password })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.user_id) {
-        userId = data.user_id;
-        birthdate = new Date(bd);
-        alert("Registered successfully! Your User ID: " + userId);
-        loadEvents();
-        loadGlobalEvents();
-      } else {
-        alert("Registration failed: " + JSON.stringify(data));
-      }
-    })
-    .catch(err => alert("Registration failed: " + err));
-  }
-
-  function addEvent() {
-    if (!userId) {
-      alert("Please register first!");
-      return;
-    }
-
-    const title = document.getElementById('title').value;
-    const eventDate = document.getElementById('eventDate').value;
-
-    if (!title || !eventDate) {
-      alert("Title and Event Date are required!");
-      return;
-    }
-
-    fetch('/api/events', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        user_id: userId,
-        title,
-        event_date: eventDate,
-        category: 'personal'
+      fetch('/api/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name, birthdate: bd, email, password })
       })
-    })
-    .then(res => res.json())
-    .then(() => {
-      alert("Event added successfully!");
-      loadEvents();
-    })
-    .catch(err => alert("Error adding event: " + err));
-  }
-
-  function loadEvents() {
-    if (!userId) return;
-
-    fetch(`/api/events/${userId}`)
-      .then(res => res.json())
-      .then(events => {
-        personalEvents = events.map(e => {
-          const diffWeeks = Math.floor((new Date(e.event_date) - birthdate) / (1000 * 60 * 60 * 24 * 7));
-          return {
-            id: e.id,
-            title: e.title,
-            date: e.event_date,
-            week: diffWeeks + 1
-          };
-        });
-        renderTimeline();
-        updateEventDropdown();
-      });
-  }
-
-  function loadGlobalEvents() {
-    fetch('/static/global_events.json')
       .then(res => res.json())
       .then(data => {
-        globalEvents = data.map(e => {
-          const date = new Date(e.date || e.event_date);
-          const week = Math.floor((date - birthdate) / (1000 * 60 * 60 * 24 * 7));
-          return {
-            title: e.title || e.Title,
-            date: date.toDateString(),
-            week: week + 1
-          };
+        if (data.user_id) {
+          alert("Registered successfully! User ID: " + data.user_id);
+          userId = data.user_id;
+          loadEvents(userId);
+        } else {
+          alert("Registration failed: " + JSON.stringify(data));
+        }
+      })
+      .catch(err => alert("Error: " + err));
+    }
+
+    function addEvent() {
+      if (!userId) return alert("Please register first!");
+
+      const week = parseInt(document.getElementById('weekNumber').value);
+      const title = document.getElementById('title').value;
+      const eventDate = document.getElementById('eventDate').value;
+
+      fetch('/api/events', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: userId,
+          title,
+          event_date: eventDate,
+          category: 'personal'
+        })
+      })
+      .then(res => res.json())
+      .then(() => loadEvents(userId))
+      .catch(err => alert("Error adding event: " + err));
+    }
+
+    function loadEvents(uid) {
+      fetch(`/api/events/${uid}`)
+        .then(res => res.json())
+        .then(events => {
+          personalEvents = events.map(e => {
+            const diffWeeks = Math.floor((new Date(e.event_date) - birthdate) / (1000 * 60 * 60 * 24 * 7));
+            return {
+              id: e.id,
+              title: e.title,
+              date: e.event_date,
+              week: diffWeeks + 1
+            };
+          });
+          renderTimeline();
+          updateEventDropdown();
         });
-        renderTimeline();
+    }
+
+    function loadGlobalEvents() {
+      fetch('/static/global_events.json')
+        .then(res => res.json())
+        .then(data => {
+          globalEvents = data.map(e => {
+            const date = new Date(e.date || e.event_date);
+            const week = Math.floor((date - birthdate) / (1000 * 60 * 60 * 24 * 7));
+            return {
+              title: e.title || e.Title,
+              date: date.toDateString(),
+              week: week + 1
+            };
+          });
+          renderTimeline();
+        });
+    }
+
+    function updateEventDropdown() {
+      const select = document.getElementById('eventSelect');
+      select.innerHTML = '';
+      personalEvents.forEach(e => {
+        const option = document.createElement('option');
+        option.value = e.id;
+        option.text = `Week ${e.week}: ${e.title}`;
+        select.appendChild(option);
       });
-  }
+    }
 
-  function updateEventDropdown() {
-    const select = document.getElementById('eventSelect');
-    select.innerHTML = '';
-    personalEvents.forEach(e => {
-      const option = document.createElement('option');
-      option.value = e.id;
-      option.text = `Week ${e.week}: ${e.title}`;
-      select.appendChild(option);
-    });
-  }
+    function editEvent() {
+      const eventId = document.getElementById('eventSelect').value;
+      const newTitle = document.getElementById('editTitle').value;
+      const newDate = document.getElementById('editDate').value;
 
-  function editEvent() {
-    const eventId = document.getElementById('eventSelect').value;
-    const newTitle = document.getElementById('editTitle').value;
-    const newDate = document.getElementById('editDate').value;
+      fetch(`/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ title: newTitle, event_date: newDate })
+      })
+      .then(res => res.json())
+      .then(() => {
+        alert("Event updated!");
+        loadEvents(userId);
+      });
+    }
 
-    fetch(`/api/events/${eventId}`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ title: newTitle, event_date: newDate })
-    })
-    .then(res => res.json())
-    .then(() => {
-      alert("Event updated!");
-      loadEvents();
-    });
-  }
+    function deleteEvent() {
+      const eventId = document.getElementById('eventSelect').value;
 
-  function deleteEvent() {
-    const eventId = document.getElementById('eventSelect').value;
+      fetch(`/api/events/${eventId}`, {
+        method: 'DELETE'
+      })
+      .then(() => {
+        alert("Event deleted!");
+        loadEvents(userId);
+      });
+    }
 
-    fetch(`/api/events/${eventId}`, {
-      method: 'DELETE'
-    })
-    .then(() => {
-      alert("Event deleted!");
-      loadEvents();
-    });
-  }
-
-</script>
+    // Load on page start
+    loadGlobalEvents();
+  </script>
+</body>
+</html>
